@@ -1,37 +1,46 @@
-import {Injectable,OnModuleInit, OnModuleDestroy} from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import {drizzle, NodePgDatabase} from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
+import {
+  Injectable,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
 
 @Injectable()
-export class DatabaseService implements OnModuleInit,OnModuleDestroy{
-    private readonly pool:Pool;
-    public readonly db:NodePgDatabase;
+export class DatabaseService
+  implements OnModuleInit, OnModuleDestroy
+{
+  private readonly pool: Pool;
+  public readonly db: NodePgDatabase;
 
-    constructor(private readonly configService:ConfigService){
+  constructor(
+    private readonly configService: ConfigService,
+  ) {
+    const databaseUrl =
+      this.configService.get<string>('DATABASE_URL');
+      
 
-        const databaseUrl=this.configService.get<string>("DATABASE_URL");
-        if(!databaseUrl){
-            throw new Error("DATABASE_URL is not Configured!");
-        }
-
-        this.pool=new Pool({
-            connectionString:databaseUrl
-        });
-
-        this.db=drizzle(this.pool);
-         console.log("✅ PostgreSQL database connected");
-
+    if (!databaseUrl) {
+      throw new Error('DATABASE_URL is not configured!');
     }
 
-    // Verify the connection
-    async onModuleInit() {
-        await this.pool.query("SELECT 1");
-    }
+    this.pool = new Pool({
+      connectionString: databaseUrl,
+      max: 10,
+      connectionTimeoutMillis: 5000,
+      idleTimeoutMillis: 30000,
+    });
 
+    this.db = drizzle(this.pool);
+  }
 
-    // closing the connection on Module Destro
-    async onModuleDestroy() {
-        await this.pool.end();
-    }
+  async onModuleInit(): Promise<void> {
+    await this.pool.query('SELECT 1');
+    console.log('PostgreSQL database connected');
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    await this.pool.end();
+  }
 }
