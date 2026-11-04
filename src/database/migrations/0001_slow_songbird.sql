@@ -1,0 +1,1 @@
+ALTER TABLE "sessions" ADD COLUMN "absolute_expires_at" timestamp with time zone NOT NULL;

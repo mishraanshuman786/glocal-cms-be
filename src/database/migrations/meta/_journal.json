@@ -8,6 +8,13 @@
       "when": 1793119472294,
       "tag": "0000_glossy_liz_osborn",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793701927346,
+      "tag": "0001_slow_songbird",
+      "breakpoints": true
     }
   ]
 }

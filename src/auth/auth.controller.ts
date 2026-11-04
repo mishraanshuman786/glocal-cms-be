@@ -1,19 +1,25 @@
+
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
-  Get,
   Req,
-  UseGuards,
   Res,
+  Patch,
+  UseGuards,
+  UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
+
 import type { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
+
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { AuthService } from './auth.service';
-import { LoginDto } from '../common/dto/login.dto';
+import { LoginDto, ChangePasswordDto } from '../common/dto/auth.dto';
 
 type AuthenticatedRequest = Request & {
   user: {
@@ -24,12 +30,66 @@ type AuthenticatedRequest = Request & {
   };
 };
 
+const REFRESH_COOKIE_NAME = 'refresh_token';
+const REFRESH_COOKIE_PATH = '/api/v1/auth';
+const MAX_REFRESH_TOKEN_LENGTH = 4096;
+
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
   ) {}
+
+  private getCookieOptions() {
+    const isProduction =
+      this.configService.get<string>('NODE_ENV') === 'production';
+
+    return {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax' as const,
+      path: REFRESH_COOKIE_PATH,
+    };
+  }
+
+  private getRefreshToken(request: Request): string | undefined {
+    const token: unknown = request.cookies?.[REFRESH_COOKIE_NAME];
+
+    // No cookie is allowed here. The service decides whether it is
+    // acceptable for the particular operation.
+    if (token === undefined) {
+      return undefined;
+    }
+
+    if (
+      typeof token !== 'string' ||
+      token.length === 0 ||
+      token.length > MAX_REFRESH_TOKEN_LENGTH
+    ) {
+      throw new BadRequestException('Invalid refresh token cookie');
+    }
+
+    return token;
+  }
+
+  private setRefreshCookie(
+    response: Response,
+    token: string,
+    maxAge: number,
+  ) {
+    response.cookie(REFRESH_COOKIE_NAME, token, {
+      ...this.getCookieOptions(),
+      maxAge,
+    });
+  }
+
+  private clearRefreshCookie(response: Response) {
+    response.clearCookie(
+      REFRESH_COOKIE_NAME,
+      this.getCookieOptions(),
+    );
+  }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -38,26 +98,19 @@ export class AuthController {
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const existingRefreshToken = request.cookies?.refresh_token as
-      string | undefined;
+    const existingRefreshToken = this.getRefreshToken(request);
 
-    const result = await this.authService.login(dto, existingRefreshToken);
+    const result = await this.authService.login(
+      dto,
+      existingRefreshToken,
+    );
 
-    const isProduction =
-      this.configService.get<string>('NODE_ENV') === 'production';
-
-    // Set a cookie only when the service creates a new refresh token.
-    if (result.refreshToken) {
-      const refreshExpiresIn =
-        this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d';
-
-      response.cookie('refresh_token', result.refreshToken, {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: 'lax',
-        path: '/api/v1/auth',
-        maxAge: this.parseDurationMs(refreshExpiresIn),
-      });
+    if (result.refreshToken && result.refreshTokenMaxAge) {
+      this.setRefreshCookie(
+        response,
+        result.refreshToken,
+        result.refreshTokenMaxAge,
+      );
     }
 
     return {
@@ -83,34 +136,56 @@ export class AuthController {
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const refreshToken = request.cookies?.refresh_token as string | undefined;
+    const refreshToken = this.getRefreshToken(request);
 
     const result = await this.authService.logout(refreshToken);
 
-    response.clearCookie('refresh_token', {
-      httpOnly: true,
-      secure: this.configService.get<string>('NODE_ENV') === 'production',
-      sameSite: 'lax',
-      path: '/api/v1/auth',
-    });
+    this.clearRefreshCookie(response);
 
     return result;
   }
 
-  private parseDurationMs(duration: string): number {
-    const match = duration.match(/^(\d+)(s|m|h|d)$/);
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  async refresh(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const refreshToken = this.getRefreshToken(request);
 
-    if (!match) {
-      throw new Error('Invalid JWT_REFRESH_EXPIRES_IN configuration');
+    try {
+      const result = await this.authService.refresh(refreshToken);
+
+      this.setRefreshCookie(
+        response,
+        result.refreshToken,
+        result.refreshTokenMaxAge,
+      );
+
+      return {
+        success: true,
+        message: 'Token refreshed successfully',
+        accessToken: result.accessToken,
+        user: result.user,
+      };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        this.clearRefreshCookie(response);
+      }
+
+      throw error;
     }
+  }
 
-    const multipliers: Record<string, number> = {
-      s: 1000,
-      m: 60 * 1000,
-      h: 60 * 60 * 1000,
-      d: 24 * 60 * 60 * 1000,
-    };
+  @Patch('change-password')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async changePassword(@Req() request: AuthenticatedRequest, @Body() dto:ChangePasswordDto, @Res({passthrough:true}) response:Response){
+     const result=await this.authService.changePassword(request.user.id, dto);
 
-    return Number(match[1]) * multipliers[match[2]];
+    //  clear the current browser's refresh-token cookie
+    this.clearRefreshCookie(response);
+
+    return result;
   }
 }
