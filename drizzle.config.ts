@@ -1,34 +1,44 @@
-import {config} from "dotenv";
-import {defineConfig} from "drizzle-kit";
-import { env } from "process";
 
-const nodeEnv= process.env.NODE_ENV ?? 'development';
+import { config } from 'dotenv';
+import { defineConfig } from 'drizzle-kit';
 
-const envFiles={
-    development:".env.dev",
-    test:"env.test",
-    production:".env.prod"
-};
+const nodeEnv = process.env.NODE_ENV ?? 'development';
 
-const envFile=envFiles[nodeEnv as keyof typeof envFiles];
+const envFiles = {
+  development: '.env.dev',
+  test: '.env.test',
+  production: '.env.prod',
+} as const;
 
-if(!envFile){
-    throw new Error(`Invalid NODE_ENV: ${nodeEnv}`);
+const envFile = envFiles[nodeEnv as keyof typeof envFiles];
+
+if (!envFile) {
+  throw new Error(`Invalid NODE_ENV: ${nodeEnv}`);
 }
 
-config({path:envFile});
+// Load a local environment file only when DATABASE_URL
+// has not already been provided by the environment.
+if (!process.env.DATABASE_URL) {
+  const result = config({ path: envFile });
 
-const databaseUrl=process.env.DATABASE_URL;
+  if (result.error) {
+    throw new Error(
+      `Unable to load ${envFile}: ${result.error.message}`,
+    );
+  }
+}
 
-if(!databaseUrl){
-    throw new Error(`DATABASE_URL is missing in ${envFile}`);
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  throw new Error(`DATABASE_URL is missing for NODE_ENV=${nodeEnv}`);
 }
 
 export default defineConfig({
-schema:"./src/database/schema/index.ts",
-out:"./src/database/migrations",
-dialect:"postgresql",
-dbCredentials:{
-    url:databaseUrl
-}
+  schema: './src/database/schema/index.ts',
+  out: './src/database/migrations',
+  dialect: 'postgresql',
+  dbCredentials: {
+    url: databaseUrl,
+  },
 });

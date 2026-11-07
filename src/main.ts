@@ -5,6 +5,10 @@ import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
+  const port=Number(process.env.PORT ?? 3001);
+  const host=process.env.HOST ?? 'localhost';
+
+
   const app = await NestFactory.create(AppModule);
 
   app.setGlobalPrefix('api/v1');
@@ -27,7 +31,7 @@ async function bootstrap() {
     }),
   );
 
-  await app.listen(process.env.PORT ?? 3001);
+  await app.listen(port, host);
 }
 
 bootstrap();
