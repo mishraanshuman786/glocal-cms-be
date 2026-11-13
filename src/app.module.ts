@@ -6,6 +6,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './auth/auth.module';
+import { MastersModule } from './masters/masters.module';
 
 const nodeEnv = process.env.NODE_ENV ?? 'development';
 
@@ -31,6 +32,7 @@ if (!selectedEnvFile) {
     }),
     DatabaseModule,
     AuthModule,
+    MastersModule
   ],
   controllers: [AppController],
   providers: [AppService],
