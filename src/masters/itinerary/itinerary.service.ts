@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ItineraryRepository } from '../../common/repositories/itinerary.repository';
 import {
   CreateItineraryDto,
@@ -44,15 +44,25 @@ export class ItineraryService {
     });
   }
 
-  async updateStatus(
-    id: string,
-    status: 'DRAFT' | 'ACTIVE' | 'INACTIVE',
-    userId: string,
-  ) {
-    return this.itineraryRepository.updateStatus(id, status, userId);
+ async updateStatus(
+  id: string,
+  status: 'ACTIVE' | 'INACTIVE',
+  userId: string,
+) {
+  return this.itineraryRepository.updateStatus(id, status, userId);
+}
+
+ async copy(id: string, title: string, userId: string) {
+  const trimmedTitle = title.trim();
+
+  if (!trimmedTitle) {
+    throw new BadRequestException('Itinerary title is required');
   }
 
-  async copy(id: string, userId: string) {
-    return this.itineraryRepository.copy(id, userId);
-  }
+  return this.itineraryRepository.copy(
+    id,
+    trimmedTitle,
+    userId,
+  );
+}
 }

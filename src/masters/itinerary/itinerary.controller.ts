@@ -16,7 +16,7 @@ import type { Request } from 'express';
 
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ItineraryService } from './itinerary.service';
-import { CreateItineraryDto, ListItinerariesDto, UpdateItineraryStatusDto } from '../../common/dto/itinerary.dto';
+import { CreateItineraryDto, ListItinerariesDto, UpdateItineraryStatusDto, CopyItineraryDto } from '../../common/dto/itinerary.dto';
 
 
 interface AuthenticatedRequest extends Request {
@@ -93,20 +93,22 @@ export class ItineraryController {
     };
   }
 
-  @Post(':id/copy')
-  async copy(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Req() request: AuthenticatedRequest,
-  ) {
-    const itinerary = await this.itineraryService.copy(
-      id,
-      request.user.id,
-    );
+ @Post(':id/copy')
+async copy(
+  @Param('id', ParseUUIDPipe) id: string,
+  @Body() dto: CopyItineraryDto,
+  @Req() request: AuthenticatedRequest,
+) {
+  const itinerary = await this.itineraryService.copy(
+    id,
+    dto.title,
+    request.user.id,
+  );
 
-    return {
-      success: true,
-      message: 'Itinerary copied successfully',
-      data: itinerary,
-    };
-  }
+  return {
+    success: true,
+    message: 'Itinerary copied successfully',
+    data: itinerary,
+  };
+}
 }

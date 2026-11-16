@@ -2,10 +2,9 @@ import {pgEnum, pgTable, uuid, varchar, timestamp, integer, index} from "drizzle
 
 import { users } from "./users.schema";
 
-export const itineraryStatusEnum=pgEnum('itinerary_status',[
-"DRAFT",
-"ACTIVE",
-"INACTIVE"
+export const itineraryStatusEnum = pgEnum('itinerary_status', [
+  'ACTIVE',
+  'INACTIVE',
 ]);
 
 export const itineraries=pgTable('itineraries',{
