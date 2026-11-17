@@ -3,3 +3,5 @@ export * from "./permissions.schema";
 export * from "./users.schema";
 export * from "./sessions.schema";
 export * from './itineraries.schema';
+export * from "./states.schema";
+

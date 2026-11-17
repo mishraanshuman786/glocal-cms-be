@@ -29,6 +29,13 @@
       "when": 1794820324442,
       "tag": "0003_shocking_bastion",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794910880387,
+      "tag": "0004_familiar_prism",
+      "breakpoints": true
     }
   ]
 }
