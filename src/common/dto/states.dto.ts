@@ -1,6 +1,6 @@
 import { Transform, Type } from 'class-transformer';
 import { IsIn, IsNotEmpty, IsInt, Min, IsBoolean, IsString, MaxLength, IsOptional } from 'class-validator';
-import { boolean } from 'drizzle-orm/gel-core';
+
 
 export const STATE_REGIONS = [
   'NORTH',
@@ -11,6 +11,15 @@ export const STATE_REGIONS = [
 ] as const;
 
 export type StateRegion = (typeof STATE_REGIONS)[number];
+
+// Converts query/body string values into actual booleans.
+const transformBoolean=({value}:{value:unknown})=>{
+  if(value==="true") return true;
+  if(value==="false") return false;
+
+  return value;
+
+}
 
 export class CreateStateDto {
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
@@ -24,7 +33,7 @@ export class CreateStateDto {
 }
 
 export class UpdateStateStatusDto{
-    @Type(()=>Boolean)
+    @Transform(transformBoolean)
     @IsBoolean()
     isActive: boolean;
 }
@@ -40,7 +49,7 @@ export class ListStatesDto{
     region?:string;
 
     @IsOptional()
-    @Type(()=>Boolean)
+    @Transform(transformBoolean)
     @IsBoolean()
     isActive?:boolean;
 
