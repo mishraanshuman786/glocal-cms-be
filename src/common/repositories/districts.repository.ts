@@ -32,6 +32,27 @@ export class DistrictsRepository {
     return district;
   }
 
+  async createMany(
+  stateId: string,
+  items: {
+    name: string;
+    isActive?: boolean;
+  }[],
+) {
+  return this.db.transaction(async (tx) => {
+    return tx
+      .insert(districts)
+      .values(
+        items.map((item) => ({
+          name: item.name.trim(),
+          stateId,
+          isActive: item.isActive ?? true,
+        })),
+      )
+      .returning();
+  });
+}
+
   async findByName(name: string, stateId: string) {
     const [district] = await this.db
       .select()

@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { DistrictsRepository } from "../../common/repositories/districts.repository";
 import { StatesRepository } from "../../common/repositories/states.repository";
 
-import type { CreateDistrictDto, ListDistrictsDto, UpdateDistrictDto } from "../../common/dto/districts.dto";
+import type { CreateDistrictDto, ListDistrictsDto, UpdateDistrictDto, CreateDistrictsBulkDto } from "../../common/dto/districts.dto";
 
 @Injectable()
 export class DistrictsService{
@@ -50,6 +50,39 @@ export class DistrictsService{
     }
 
   }
+
+  async createMany(dto: CreateDistrictsBulkDto) {
+  const normalizedNames = dto.districts.map((item) =>
+    item.name.trim(),
+  );
+
+  const uniqueNames = new Set(
+    normalizedNames.map((name) => name.toLowerCase()),
+  );
+
+  if (uniqueNames.size !== normalizedNames.length) {
+    throw new BadRequestException(
+      'Duplicate district names are not allowed.',
+    );
+  }
+
+  const state = await this.statesRepository.findById(dto.stateId);
+
+  if (!state) {
+    throw new NotFoundException('State not found.');
+  }
+
+  const districts = await this.districtsRepository.createMany(
+    dto.stateId,
+    dto.districts,
+  );
+
+  return {
+    success: true,
+    message: 'Districts created successfully',
+    data: districts,
+  };
+}
 
   async findAll(query: ListDistrictsDto){
     return this.districtsRepository.findAll({

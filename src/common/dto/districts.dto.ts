@@ -1,5 +1,6 @@
 import { Transform, Type } from 'class-transformer';
 import {
+  ArrayMinSize,
   IsBoolean,
   IsInt,
   IsNotEmpty,
@@ -8,6 +9,9 @@ import {
   IsUUID,
   MaxLength,
   Min,
+  ValidateNested,
+  IsArray,
+  
 } from 'class-validator';
 
 const transformBoolean = ({ value }: { value: unknown }) => {
@@ -31,6 +35,29 @@ export class CreateDistrictDto {
   @Transform(transformBoolean)
   @IsBoolean()
   isActive?: boolean;
+}
+
+export class BulkDistrictItemDto{
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  name:string;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?:boolean;
+}
+
+export class CreateDistrictsBulkDto{
+  @IsUUID()
+  stateId:string;
+
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({each:true})
+  @Type(()=> BulkDistrictItemDto)
+  districts: BulkDistrictItemDto[];
+
 }
 
 export class UpdateDistrictDto {

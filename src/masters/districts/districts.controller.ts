@@ -14,6 +14,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { DistrictsService } from './districts.service';
 import {
   CreateDistrictDto,
+  CreateDistrictsBulkDto,
   ListDistrictsDto,
   UpdateDistrictDto,
   UpdateDistrictStatusDto,
@@ -56,6 +57,11 @@ export class DistrictsController {
       data: district,
     };
   }
+
+  @Post('bulk')
+createMany(@Body() dto: CreateDistrictsBulkDto) {
+  return this.districtsService.createMany(dto);
+}
 
   @Patch(':id/status')
   async updateStatus(
