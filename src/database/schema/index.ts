@@ -4,4 +4,5 @@ export * from "./users.schema";
 export * from "./sessions.schema";
 export * from './itineraries.schema';
 export * from "./states.schema";
+export * from "./enquiry-types.schema";
 

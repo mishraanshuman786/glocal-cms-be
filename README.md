@@ -49,6 +49,41 @@ docker ps -a | grep glocal-cms-migration
 docker rm glocal-cms-migration-20261107
 ```
 
+Docker doesn't allow two containers with the same name.
+Step 1: Pull the latest backend image
+```
+docker pull ghcr.io/mishraanshuman786/glocal-cms-be:latest
+```
+
+Step 2: Stop and remove the existing container
+```
+docker stop glocal-cms-backend
+docker rm glocal-cms-backend
+```
+
+This removes the container, not your PostgreSQL database or its data.
+Step 3: Start the updated backend
+```
+docker run -d \
+  --name glocal-cms-backend \
+  --restart unless-stopped \
+  --env-file /root/glocal-cms-backend/.env.production \
+  --add-host=host.docker.internal:host-gateway \
+  -p 127.0.0.1:3002:3001 \
+  ghcr.io/mishraanshuman786/glocal-cms-be:latest
+```
+
+Step 4: Verify deployment
+Check that the container is running:
+```
+docker ps
+```
+
+Check application logs:
+```
+docker logs -f glocal-cms-backend
+```
+
 ## 5. Start the glocal cms backend
 ```
 docker run -d \
